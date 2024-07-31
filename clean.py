@@ -1,5 +1,4 @@
-import os, winreg, shutil
-from subprocess import check_output
+import os, winreg, shutil, subprocess
 
 
 OS = ''
@@ -10,6 +9,29 @@ def detect_os():
 		OS = 'windows'
 	else:
 		OS = 'unix'
+
+
+def get_all_drives():
+    drives = []
+    for letter in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ':
+        if os.path.exists(f"{letter}:\\"):
+            drives.append(f"{letter}:\\")
+    return drives
+
+
+def empty_recycle_bin():
+    drives = get_all_drives()
+
+    for drive in drives:
+        try:
+            recycle_bin_path = f"{drive}$Recycle.Bin"
+            if os.path.exists(recycle_bin_path):
+                subprocess.run(f"rd /s /q {recycle_bin_path}", shell=True, check=True)
+                print(f"Cleaned trash on {drive}")
+            else:
+                print(f"No recycle bin found on {drive}")
+        except subprocess.CalledProcessError as e:
+            print(f"Error when emptying the trash on {drive}: {e}")
 
 
 def delete_sub_key(root, sub):
@@ -77,7 +99,7 @@ def clean_reg():
 def remove_temp_files():
 	try:
 		for file in os.listdir(os.getenv('LOCALAPPDATA') + "\\Microsoft\\Office\\UnsavedFiles"):
-			check_output("del " + os.path.join(os.getenv('LOCALAPPDATA') + "\\Microsoft\\Office\\UnsavedFiles", file) + " /F", shell=True)
+			subprocess.check_output("del " + os.path.join(os.getenv('LOCALAPPDATA') + "\\Microsoft\\Office\\UnsavedFiles", file) + " /F", shell=True)
 		shutil.rmtree(os.getenv('LOCALAPPDATA') + "\\Microsoft\\Office\\UnsavedFiles")
 	except:
 		pass
@@ -101,15 +123,15 @@ def remove_windows_history():
 
 
 def clean_drive_c():
-	check_output("cleanmgr /d C: /verylowdisk", shell=True)
+	subprocess.check_output("cleanmgr /d C: /verylowdisk", shell=True)
 
 
 def clean_recent_files():
-	check_output("del /F /Q %APPDATA%\\Microsoft\\Windows\\Recent\\*", shell=True)
-	check_output("del /F /Q %APPDATA%\\Microsoft\\Windows\\Recent\\AutomaticDestinations\\*", shell=True)
-	check_output("del /F /Q %APPDATA%\\Microsoft\\Windows\\Recent\\CustomDestinations\\*", shell=True)
-	check_output("taskkill /f /im explorer.exe", shell=True)
-	check_output("start explorer.exe", shell=True)
+	subprocess.check_output("del /F /Q %APPDATA%\\Microsoft\\Windows\\Recent\\*", shell=True)
+	subprocess.check_output("del /F /Q %APPDATA%\\Microsoft\\Windows\\Recent\\AutomaticDestinations\\*", shell=True)
+	subprocess.check_output("del /F /Q %APPDATA%\\Microsoft\\Windows\\Recent\\CustomDestinations\\*", shell=True)
+	subprocess.check_output("taskkill /f /im explorer.exe", shell=True)
+	subprocess.check_output("start explorer.exe", shell=True)
 
 
 def main():
@@ -119,6 +141,7 @@ def main():
 		remove_temp_files()
 		remove_windows_history()
 		clean_recent_files()
+		empty_recycle_bin()
 		clean_drive_c()
 	else:
 		print("Not implemented yet")
